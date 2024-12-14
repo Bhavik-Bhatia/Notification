@@ -3,7 +3,6 @@ package com.ab.notification.rest;
 import com.ab.notification.constants.NotificationURI;
 import com.ab.notification.service.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

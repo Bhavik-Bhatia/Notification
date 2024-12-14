@@ -28,20 +28,31 @@ public class EmailService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailService.class);
 
+    private final JavaMailSender javaMailSender;
+
+    private final Environment environment;
+
     @Autowired
-    private JavaMailSender javaMailSender;
+    public EmailService(JavaMailSender javaMailSender, Environment environment) {
+        this.environment = environment;
+        this.javaMailSender = javaMailSender;
+    }
 
-
+    /**
+     * sendMail() method sends mail to multiple users.
+     *
+     * @param mailMap Map
+     * @return Boolean
+     */
     public Boolean sendMail(Map<String, String> mailMap) {
         MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         try {
             LOGGER.debug("Sending Mail to {}", mailMap.get("mailFrom"));
             MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, Boolean.parseBoolean(mailMap.get("isMultipart")));
             mimeMessageHelper.setSubject(mailMap.get("subject"));
-            mimeMessageHelper.setFrom(new InternetAddress(mailMap.get("mailFrom")));
-            mimeMessageHelper.setTo(mailMap.get("mailTo"));
+            mimeMessageHelper.setFrom(new InternetAddress(environment.getProperty("spring.mail.username")));
+            mimeMessageHelper.setTo(mailMap.get("mailTo").split(","));
 //          todo: Send complete message in text, wherever sendMail is called from.
-//          mimeMessageHelper.setText(String.format("Please use this OTP %s to verify your account", mailMap.get("text")));
             mimeMessageHelper.setText(mailMap.get("text"));
             javaMailSender.send(mimeMessageHelper.getMimeMessage());
             return true;
