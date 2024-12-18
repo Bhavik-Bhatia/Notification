@@ -38,6 +38,5 @@ subprojects {
 		testImplementation group: 'junit', name: 'junit', version: '4.12'
 		testImplementation 'org.mockito:mockito-core:3.12.4'
 		implementation 'com.googlecode.json-simple:json-simple:1.1.1'
-		implementation 'org.springframework.boot:spring-boot-starter-security:' + springSecurityVersion
 	}
 }
