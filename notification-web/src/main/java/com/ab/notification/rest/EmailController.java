@@ -30,7 +30,7 @@ public class EmailController {
     @PostMapping(value = NotificationURI.SEND_EMAIL_URI, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Boolean> sendEmail(@NotNull @RequestParam Map<String, String> mailParam, HttpServletRequest httpServletRequest) {
         LOGGER.debug("Enter in TaskResources.addTask()");
-        Boolean response = emailService.sendMail(mailParam);
+        Boolean response = emailService.sendMail(mailParam, httpServletRequest);
         LOGGER.debug("Exit in TaskResources.addTask()");
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

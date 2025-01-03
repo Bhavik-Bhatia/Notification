@@ -1,7 +1,7 @@
 package com.ab.notification.service;
 
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +11,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 /**
  * This class is general method for sending mails
@@ -31,23 +30,27 @@ public class EmailService {
 
     private final String MAIL_FROM;
 
+    private final ExecutorService executorService;
+
     @Autowired
     public EmailService(JavaMailSender javaMailSender, Environment environment) {
         this.environment = environment;
         this.javaMailSender = javaMailSender;
         MAIL_FROM = environment.getProperty("spring.mail.username");
+        executorService = Executors.newFixedThreadPool(10);
     }
 
-    public Boolean sendMail(Map<String, String> mailMap) {
+    public Boolean sendMail(Map<String, String> mailMap, HttpServletRequest httpServletRequest) {
         String[] mailTos = mailMap.get("mailTo").split(",");
         final double NUMBER_OF_BATCHES = Math.ceil((double) mailTos.length / BATCH_SIZE);
+        List<Callable<Void>> batchTasks = new ArrayList<>();
 
 //      In case batch size is one we avoid all calculation and processing
         if (NUMBER_OF_BATCHES == 1) {
             sendBatchMails(mailMap, mailTos);
+            return true;
         }
-
-        try (ExecutorService executorService = Executors.newFixedThreadPool((int) NUMBER_OF_BATCHES)) {
+        try {
             for (int incrementalNumOfBatches = 0; incrementalNumOfBatches < NUMBER_OF_BATCHES; incrementalNumOfBatches++) {
                 int startIndex = incrementalNumOfBatches * BATCH_SIZE;
                 int endIndex = startIndex + BATCH_SIZE;
@@ -58,7 +61,14 @@ public class EmailService {
                 }
 
                 String[] srcMailTos = Arrays.copyOfRange(mailTos, startIndex, endIndex);
-                executorService.submit(() -> sendBatchMails(mailMap, srcMailTos));
+                batchTasks.add(() -> {
+                    sendBatchMails(mailMap, srcMailTos);
+                    return null;
+                });
+            }
+            List<Future<Void>> futures = executorService.invokeAll(batchTasks);
+            for (Future<Void> future : futures) {
+                future.get();
             }
         } catch (Exception e) {
             LOGGER.error("Exception wile Sending Mail{}", e.getMessage());
@@ -75,17 +85,15 @@ public class EmailService {
      * @return Boolean
      */
     public void sendBatchMails(Map<String, String> mailMap, String[] mailTos) {
-        MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         try {
             LOGGER.debug("Sending Mail to {}", MAIL_FROM);
+            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, Boolean.parseBoolean(mailMap.get("isMultipart")));
             mimeMessageHelper.setSubject(mailMap.get("subject"));
             mimeMessageHelper.setFrom(Objects.requireNonNull(MAIL_FROM), Objects.requireNonNull(environment.getProperty("spring.mail.display.name")));
             mimeMessageHelper.setBcc(mailTos);
             mimeMessageHelper.setText(mailMap.get("text"));
             javaMailSender.send(mimeMessageHelper.getMimeMessage());
-        } catch (MessagingException e) {
-            LOGGER.error("MessagingException while Sending Mail{}", e.getMessage());
         } catch (Exception e) {
             LOGGER.error("Exception wile Sending Mail{}", e.getMessage());
         }
