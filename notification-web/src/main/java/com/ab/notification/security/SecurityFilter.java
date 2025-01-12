@@ -8,12 +8,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 /**
  * We will use Security Filter for securing our endpoint for sending mails via JWT Tokens.
  */
+@Component
 public class SecurityFilter implements Filter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecurityFilter.class);

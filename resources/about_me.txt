@@ -7,3 +7,23 @@ java -Xms512m -Xmx2g -Djava.locale.providers=COMPAT,CLDR -Djboss.server.home.dir
 
 2)Start Command for application debug -
 ${JAVA_HOME}/bin/java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=7000,suspend=n -Djava.locale.providers=COMPAT,CLDR -Djboss.server.home.dir="/home/asite/Documents/notification" -jar notification-web/build/libs/notification-web.war --spring.config.location=resources/application.properties
+
+3)Docker related commands for this app -
+
+#Build
+sudo docker build -t ns:1.0 .
+
+#run
+sudo docker run -p 8080:8080 -p 7000:7000 -e JWT_SECRET_KEY=$JWT_SERVICE_KEY -e SPRING_MAIL_PASSWORD=$SPRING_MAIL_PASSWORD -e SPRING_MAIL_USERNAME=$SPRING_MAIL_USERNAME ns:1.0
+
+#List of images
+sudo docker images
+
+#List of running containers
+sudo docker ps
+
+#Stop a container
+sudo docker stop <Container-ID>
+
+#Delete an image
+sudo docker rmi <Image-ID>
