@@ -1,0 +1,76 @@
+package com.ab.notification.helper;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Component;
+
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Class contains helper methods for mail related activities
+ */
+@Component
+public class EmailHelper {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EmailHelper.class);
+
+    private final JavaMailSender javaMailSender;
+
+    private final Environment environment;
+
+    private final String MAIL_FROM;
+
+    private final String[] ADMIN_MAILS;
+
+    @Autowired
+    public EmailHelper(JavaMailSender mailSender, Environment env) {
+        javaMailSender = mailSender;
+        environment = env;
+        ADMIN_MAILS = environment.getProperty("admin.emails").split(",");
+        MAIL_FROM = environment.getProperty("spring.mail.username");
+    }
+
+    public void sendMails(Map<String, String> mailMap, String mailTo) throws MessagingException, UnsupportedEncodingException {
+        MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+        MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, Boolean.parseBoolean(mailMap.get("isMultipart")));
+        mimeMessageHelper.setSubject(mailMap.get("subject"));
+        mimeMessageHelper.setFrom(Objects.requireNonNull(MAIL_FROM), Objects.requireNonNull(environment.getProperty("spring.mail.display.name")));
+        mimeMessageHelper.setTo(mailTo);
+        mimeMessageHelper.setText(mailMap.get("text"));
+        javaMailSender.send(mimeMessageHelper.getMimeMessage());
+    }
+
+    /**
+     * This method will be used to send mail to admins in case a failure occurred while retrying or we are retrying for more than 2 times, etc.
+     *
+     * @param mailMap       Map
+     * @param isFromRetryer boolean
+     */
+    public void sendMailToAdmin(Map<String, String> mailMap, boolean isFromRetryer) {
+        LOGGER.debug("Sending Mail to Admin, isFromRetryer - {}", isFromRetryer);
+        for (String adminMail : ADMIN_MAILS) {
+            try {
+                sendMails(mailMap, adminMail);
+            } catch (Exception e) {
+                LOGGER.debug("Exception while sending mail to admin {}", e.getMessage());
+            }
+        }
+    }
+
+
+    public Map<String, String> prepareMailMap(String subject, String body) {
+        Map<String, String> map = new HashMap<>();
+        map.put("subject", subject);
+        map.put("text", body);
+        return map;
+    }
+}

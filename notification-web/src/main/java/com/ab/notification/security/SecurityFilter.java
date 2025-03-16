@@ -14,6 +14,7 @@ import java.io.IOException;
 
 /**
  * We will use Security Filter for securing our endpoint for sending mails via JWT Tokens.
+ * //      TODO: Compare what you get from token with property
  */
 @Component
 public class SecurityFilter implements Filter {

@@ -11,10 +11,10 @@ ${JAVA_HOME}/bin/java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=700
 3)Docker related commands for this app -
 
 #Build
-sudo docker build -t ns:1.0 .
+sudo docker build -t notification:1.0 .
 
 #run
-sudo docker run -p 8080:8080 -p 7000:7000 -e JWT_SECRET_KEY=$JWT_SERVICE_KEY -e SPRING_MAIL_PASSWORD=$SPRING_MAIL_PASSWORD -e SPRING_MAIL_USERNAME=$SPRING_MAIL_USERNAME ns:1.0
+sudo docker run -p 8080:8080 -p 7000:7000 -e JWT_SECRET_KEY=$JWT_SERVICE_KEY -e SPRING_MAIL_PASSWORD=$SPRING_MAIL_PASSWORD -e SPRING_MAIL_USERNAME=$SPRING_MAIL_USERNAME notification:1.0
 
 #List of images
 sudo docker images

@@ -1,13 +1,11 @@
 package com.ab.notification.service;
 
-import jakarta.mail.internet.MimeMessage;
+import com.ab.notification.helper.EmailHelper;
+import com.ab.notification.model.ErrorBatchEntity;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -24,20 +22,19 @@ public class EmailService {
 
     private static final int BATCH_SIZE = 50;
 
-    private final JavaMailSender javaMailSender;
+    private final ErrorTrackingHelper errorTrackingHelper;
 
-    private final Environment environment;
-
-    private final String MAIL_FROM;
+    private ArrayList<String> MAIL_SENDING_FAILED_BATCH = new ArrayList<>();
 
     private final ExecutorService executorService;
 
+    private EmailHelper emailHelper;
+
     @Autowired
-    public EmailService(JavaMailSender javaMailSender, Environment environment) {
-        this.environment = environment;
-        this.javaMailSender = javaMailSender;
-        MAIL_FROM = environment.getProperty("spring.mail.username");
+    public EmailService(ErrorTrackingHelper trackingHelper, EmailHelper helper) {
         executorService = Executors.newFixedThreadPool(10);
+        errorTrackingHelper = trackingHelper;
+        emailHelper = helper;
     }
 
     public Boolean sendMail(Map<String, String> mailMap, HttpServletRequest httpServletRequest) {
@@ -47,7 +44,11 @@ public class EmailService {
 
 //      In case batch size is one we avoid all calculation and processing
         if (NUMBER_OF_BATCHES == 1) {
-            sendBatchMails(mailMap, mailTos);
+            sendBatchMails(mailMap, mailTos, false);
+//          Process error details
+            if (MAIL_SENDING_FAILED_BATCH.size() > 0) {
+                processErrorBatchDetails(mailMap);
+            }
             return true;
         }
         try {
@@ -62,7 +63,7 @@ public class EmailService {
 
                 String[] srcMailTos = Arrays.copyOfRange(mailTos, startIndex, endIndex);
                 batchTasks.add(() -> {
-                    sendBatchMails(mailMap, srcMailTos);
+                    sendBatchMails(mailMap, srcMailTos, false);
                     return null;
                 });
             }
@@ -71,8 +72,12 @@ public class EmailService {
                 future.get();
             }
         } catch (Exception e) {
-            LOGGER.error("Exception wile Sending Mail{}", e.getMessage());
+            LOGGER.error("Exception in Sending Mail{}", e.getMessage());
             return false;
+        }
+//      Process error details
+        if (MAIL_SENDING_FAILED_BATCH.size() > 0) {
+            processErrorBatchDetails(mailMap);
         }
         return true;
     }
@@ -84,18 +89,33 @@ public class EmailService {
      * @param mailMap Map
      * @return Boolean
      */
-    public void sendBatchMails(Map<String, String> mailMap, String[] mailTos) {
-        try {
-            LOGGER.debug("Sending Mail to {}", MAIL_FROM);
-            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, Boolean.parseBoolean(mailMap.get("isMultipart")));
-            mimeMessageHelper.setSubject(mailMap.get("subject"));
-            mimeMessageHelper.setFrom(Objects.requireNonNull(MAIL_FROM), Objects.requireNonNull(environment.getProperty("spring.mail.display.name")));
-            mimeMessageHelper.setBcc(mailTos);
-            mimeMessageHelper.setText(mailMap.get("text"));
-            javaMailSender.send(mimeMessageHelper.getMimeMessage());
-        } catch (Exception e) {
-            LOGGER.error("Exception wile Sending Mail{}", e.getMessage());
+    public void sendBatchMails(Map<String, String> mailMap, String[] mailTos, boolean isFromRetryer) {
+        for (String mailTo : mailTos) {
+            try {
+                LOGGER.debug("Sending Mail to {}", mailTo);
+                emailHelper.sendMails(mailMap, mailTo);
+            } catch (Exception e) {
+                if (!isFromRetryer) {
+                    MAIL_SENDING_FAILED_BATCH.add(mailTo);
+                }
+                LOGGER.error("Exception wile Sending Mail{}", e.getMessage());
+                if (isFromRetryer){
+                    throw new RuntimeException("Exception while retrying failed emails batches");
+                }
+            }
         }
+    }
+
+    /**
+     * process and save error details in DB
+     *
+     * @param mailMap Map
+     */
+    private void processErrorBatchDetails(Map<String, String> mailMap) {
+        ErrorBatchEntity errorBatchEntity = new ErrorBatchEntity();
+        errorBatchEntity.setErrorBatchDetail(String.join(",", MAIL_SENDING_FAILED_BATCH));
+        errorBatchEntity.setMailBody(mailMap.get("text"));
+        errorBatchEntity.setMailSubject(mailMap.get("subject"));
+        errorTrackingHelper.saveErrorBatchDetails(errorBatchEntity);
     }
 }
