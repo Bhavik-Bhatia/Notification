@@ -1,6 +1,9 @@
 # Use OpenJDK 21 base image
 FROM openjdk:21-slim
 
+# Install curl
+RUN apt-get update && apt-get install -y curl
+
 # Set the working directory inside the container (Path is dynamic will be created inside docker file system)
 WORKDIR /app/notification
 
