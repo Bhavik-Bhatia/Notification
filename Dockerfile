@@ -22,7 +22,7 @@ EXPOSE 7000
 
 
 # Command to run the WAR file with custom java options (debugging and Spring properties)
-CMD ["java", "-Xdebug", "-Xrunjdwp:server=y,transport=dt_socket,address=7000,suspend=n", \
+CMD ["java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:7000", \
     "-Djava.locale.providers=COMPAT,CLDR", \
     "-Djboss.server.home.dir=/app/notification", \
     "-jar", "notification-web.war", \

@@ -8,13 +8,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 /**
- * We will use Security Filter for securing our endpoint for sending mails via JWT Tokens.
- * //      TODO: Compare what you get from token with property
+ * We will use Security Filter for securing our endpoint for sending mails via JWT Tokens. Also compare
  */
 @Component
 public class SecurityFilter implements Filter {
@@ -23,6 +23,9 @@ public class SecurityFilter implements Filter {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Value("${services.list}")
+    private String servicesList;
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -34,6 +37,7 @@ public class SecurityFilter implements Filter {
         LOGGER.debug("Enter doFilter()");
         final String authHeader = getToken((HttpServletRequest) request);
         final String jwtToken;
+        boolean isFromInternalServiceCall = false;
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             errorResponse((HttpServletResponse) response, "Invalid authorization header!");
@@ -47,8 +51,18 @@ public class SecurityFilter implements Filter {
         }
 
         String subject = String.valueOf(jwtUtil.extractUsername(jwtToken));
-        LOGGER.debug("Exit doFilter(): Subject/Username from token: " + subject);
-        filterChain.doFilter(request, response);
+        for (String service : servicesList.split(",")) {
+            if (service.equals(subject)) {
+                isFromInternalServiceCall = true;
+                break;
+            }
+        }
+        if (isFromInternalServiceCall) {
+            LOGGER.debug("Exit doFilter(): Subject/Username from token: " + subject);
+            filterChain.doFilter(request, response);
+        } else {
+            errorResponse((HttpServletResponse) response, "Request from invalid source!");
+        }
     }
 
     private String getToken(HttpServletRequest request) {

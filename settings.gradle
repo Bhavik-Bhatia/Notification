@@ -3,4 +3,5 @@ include 'notification-web'
 include 'notification-web'
 include 'notification-core'
 include 'notification-dao'
+include 'notification-client'
 

@@ -1,7 +1,10 @@
 package com.ab.notification.service;
 
+import com.ab.notification.constants.NotificationContants;
 import com.ab.notification.helper.EmailHelper;
+import com.ab.notification.helper.GlobalHelper;
 import com.ab.notification.model.ErrorBatchEntity;
+import com.ab.notification.user.UserClient;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,15 +33,28 @@ public class EmailService {
 
     private EmailHelper emailHelper;
 
+    private UserClient userClient;
+
+    private GlobalHelper globalHelper;
+
     @Autowired
-    public EmailService(ErrorTrackingHelper trackingHelper, EmailHelper helper) {
+    public EmailService(ErrorTrackingHelper trackingHelper, EmailHelper helper, UserClient client, GlobalHelper globalHelper) {
         executorService = Executors.newFixedThreadPool(10);
         errorTrackingHelper = trackingHelper;
         emailHelper = helper;
+        userClient = client;
+        this.globalHelper = globalHelper;
     }
 
     public Boolean sendMail(Map<String, String> mailMap, HttpServletRequest httpServletRequest) {
-        String[] mailTos = mailMap.get("mailTo").split(",");
+//      Check mailTos if not present get data of users from DB calling auth service
+        String[] mailTos;
+        if (!mailMap.get("mailTo").isBlank()) {
+            mailTos = mailMap.get("mailTo").split(",");
+        }else {
+            mailTos = userClient.getUserEmails(globalHelper.generateTokenViaSubjectForRestCall(NotificationContants.NOTIFICATION_SERVICE_NAME)).getBody();
+        }
+
         final double NUMBER_OF_BATCHES = Math.ceil((double) mailTos.length / BATCH_SIZE);
         List<Callable<Void>> batchTasks = new ArrayList<>();
 

@@ -6,4 +6,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     api 'org.springframework.boot:spring-boot-starter-web'
     api project(":notification-dao")
+    api project(":notification-client")
+    api files("src/lib/thirdPartyJars/Jwt-Util-1.0-fat.jar")
 }
