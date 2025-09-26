@@ -15,6 +15,7 @@ import java.lang.management.OperatingSystemMXBean;
 
 /**
  * This interceptor is used to log system resources
+ * //TODO 1) Can you use Spring Actuator for this purpose? If yes then how?
  */
 @Configuration
 public class ResourceInterceptor implements HandlerInterceptor {

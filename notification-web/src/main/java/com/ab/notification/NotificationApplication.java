@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+//TODO 7: Use AOP and make annotations for Logging, Exception Handling, Security etc. Do not repeat code.
 @SpringBootApplication(scanBasePackages = "com.ab")
 @EnableAutoConfiguration
 @EnableScheduling

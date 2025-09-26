@@ -1,5 +1,6 @@
 package com.ab.notification.helper;
 
+import com.ab.notification.annotation.Log;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ public class EmailHelper {
         MAIL_FROM = environment.getProperty("spring.mail.username");
     }
 
+    @Log
     public void sendMails(Map<String, String> mailMap, String mailTo) throws MessagingException, UnsupportedEncodingException {
         MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, Boolean.parseBoolean(mailMap.get("isMultipart")));
@@ -55,13 +57,13 @@ public class EmailHelper {
      * @param mailMap       Map
      * @param isFromRetryer boolean
      */
+    @Log
     public void sendMailToAdmin(Map<String, String> mailMap, boolean isFromRetryer) {
-        LOGGER.debug("Sending Mail to Admin, isFromRetryer - {}", isFromRetryer);
         for (String adminMail : ADMIN_MAILS) {
             try {
                 sendMails(mailMap, adminMail);
             } catch (Exception e) {
-                LOGGER.debug("Exception while sending mail to admin {}", e.getMessage());
+                LOGGER.debug("Exception while sending mail to admin");
             }
         }
     }

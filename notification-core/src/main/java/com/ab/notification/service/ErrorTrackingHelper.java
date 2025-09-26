@@ -1,5 +1,6 @@
 package com.ab.notification.service;
 
+import com.ab.notification.annotation.Log;
 import com.ab.notification.constants.NotificationContants;
 import com.ab.notification.helper.EmailHelper;
 import com.ab.notification.model.ErrorBatchEntity;
@@ -33,6 +34,7 @@ public class ErrorTrackingHelper {
      *
      * @param errorBatchEntity ErrorBatchEntity
      */
+    @Log
     public void saveErrorBatchDetails(ErrorBatchEntity errorBatchEntity) {
         try {
             ErrorBatchEntity savedErrorEntity = errorBatchRepository.save(errorBatchEntity);

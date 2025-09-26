@@ -1,5 +1,6 @@
 package com.ab.notification.scheduler;
 
+import com.ab.notification.annotation.Log;
 import com.ab.notification.constants.NotificationContants;
 import com.ab.notification.helper.EmailHelper;
 import com.ab.notification.model.ErrorBatchEntity;
@@ -18,6 +19,7 @@ import java.util.Map;
 
 /**
  * This class will fetch error details and retry email sending periodically
+ * //TODO 5) Any Batch processing performed here if yes should be replaced with Spring Batch if advantageous.
  */
 @Component
 public class EmailsRetryScheduler {
@@ -42,6 +44,7 @@ public class EmailsRetryScheduler {
      */
 //    @Scheduled(cron = "0 24 10 * * 3")
     @Scheduled(fixedDelayString  = "${error.retry.scheduler.delay}")
+    @Log
     public void retryFailedEmails() {
         List<ErrorBatchEntity> errorBatchEntityList = errorBatchRepository.findIfSuccessIsFalse();
         StringBuilder idsForRetryCountGreaterThanTwo = new StringBuilder();

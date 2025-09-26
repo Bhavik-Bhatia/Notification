@@ -1,6 +1,7 @@
 package com.ab.notification.helper;
 
 import com.ab.jwt.JwtUtil;
+import com.ab.notification.annotation.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ public class GlobalHelper {
      * @param serviceName String
      * @return String
      */
+    @Log
     public Map<String, String> generateTokenViaSubjectForRestCall(String serviceName) {
         Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + jwtUtil.generateJWTToken(serviceName));

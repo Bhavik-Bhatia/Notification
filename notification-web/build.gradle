@@ -18,9 +18,6 @@ dependencies {
     api project(":notification-core")
     providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    api 'io.jsonwebtoken:jjwt-api:0.12.3'
-    api 'io.jsonwebtoken:jjwt-impl:0.12.3'
-    api 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 }
 
 test {
@@ -29,8 +26,4 @@ test {
 
 tasks.named('bootBuildImage') {
     builder = 'paketobuildpacks/builder-jammy-base:latest'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
 }

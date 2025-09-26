@@ -1,6 +1,8 @@
 package com.ab.notification.service;
 
+import com.ab.notification.annotation.Log;
 import com.ab.notification.constants.NotificationContants;
+import com.ab.notification.exception.UsersFetchingException;
 import com.ab.notification.helper.EmailHelper;
 import com.ab.notification.helper.GlobalHelper;
 import com.ab.notification.model.ErrorBatchEntity;
@@ -8,6 +10,11 @@ import com.ab.notification.user.UserClient;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameter;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +24,7 @@ import java.util.concurrent.*;
 /**
  * This class is general method for sending mails
  */
-
+//TODO 5) Use Spring Batch for batch processing and see its advantages over written logic.
 @Service
 public class EmailService {
 
@@ -37,22 +44,38 @@ public class EmailService {
 
     private GlobalHelper globalHelper;
 
+    private JobParameters jobParameter;
+
+    private final JobLauncher jobLauncher;
+
+    private Job job;
+
     @Autowired
-    public EmailService(ErrorTrackingHelper trackingHelper, EmailHelper helper, UserClient client, GlobalHelper globalHelper) {
+    public EmailService(ErrorTrackingHelper trackingHelper, EmailHelper helper, UserClient client, GlobalHelper globalHelper, Job job, JobParameters jobParameter) {
         executorService = Executors.newFixedThreadPool(10);
         errorTrackingHelper = trackingHelper;
         emailHelper = helper;
         userClient = client;
         this.globalHelper = globalHelper;
+        this.job = job;
+        this.jobParameter = jobParameter;
     }
 
-    public Boolean sendMail(Map<String, String> mailMap, HttpServletRequest httpServletRequest) {
+    @Log
+    public Boolean sendMail(Map<String, String> mailMap, HttpServletRequest httpServletRequest) throws UsersFetchingException {
 //      Check mailTos if not present get data of users from DB calling auth service
         String[] mailTos;
         if (!mailMap.get("mailTo").isBlank()) {
             mailTos = mailMap.get("mailTo").split(",");
         }else {
-            mailTos = userClient.getUserEmails(globalHelper.generateTokenViaSubjectForRestCall(NotificationContants.NOTIFICATION_SERVICE_NAME)).getBody();
+            jobParameter = new JobParametersBuilder().addJobParameter("jobId", UUID.randomUUID().toString(), String.class).toJobParameters();
+            jobLauncher.run(job,jobParameter);
+
+            try {
+                mailTos = userClient.getUserEmails(globalHelper.generateTokenViaSubjectForRestCall(NotificationContants.NOTIFICATION_SERVICE_NAME)).getBody();
+            } catch (Exception e) {
+                throw new UsersFetchingException(e.getMessage());
+            }
         }
 
         final double NUMBER_OF_BATCHES = Math.ceil((double) mailTos.length / BATCH_SIZE);
@@ -105,7 +128,8 @@ public class EmailService {
      * @param mailMap Map
      * @return Boolean
      */
-    public void sendBatchMails(Map<String, String> mailMap, String[] mailTos, boolean isFromRetryer) {
+    @Log
+     public void sendBatchMails(Map<String, String> mailMap, String[] mailTos, boolean isFromRetryer) {
         for (String mailTo : mailTos) {
             try {
                 LOGGER.debug("Sending Mail to {}", mailTo);
@@ -114,7 +138,7 @@ public class EmailService {
                 if (!isFromRetryer) {
                     MAIL_SENDING_FAILED_BATCH.add(mailTo);
                 }
-                LOGGER.error("Exception wile Sending Mail{}", e.getMessage());
+                LOGGER.error("Exception in sendBatchMails()");
                 if (isFromRetryer){
                     throw new RuntimeException("Exception while retrying failed emails batches");
                 }
