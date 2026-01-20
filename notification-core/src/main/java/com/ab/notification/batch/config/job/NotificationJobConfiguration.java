@@ -1,5 +1,6 @@
 package com.ab.notification.batch.config.job;
 
+import com.ab.notification.batch.listener.NewsletterJobListener;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,18 +14,28 @@ public class NotificationJobConfiguration {
 
     private final JobRepository jobRepository;
 
-    private final Step step;
+    private final NewsletterJobListener newsletterJobListener;
 
     @Autowired
-    public NotificationJobConfiguration(JobRepository jobRepository, @Autowired @Qualifier("newsletterStep") Step step) {
+    public NotificationJobConfiguration(JobRepository jobRepository, NewsletterJobListener newsletterJobListener) {
         this.jobRepository = jobRepository;
-        this.step = step;
+        this.newsletterJobListener = newsletterJobListener;
     }
 
     @Bean(name = "notificationJob")
-    public Job job() {
+    public Job job(@Qualifier("newsletterStep") Step step) {
         return new JobBuilder("notificationJob", jobRepository)
                 .start(step)
+                .listener(newsletterJobListener)
                 .build();
     }
+
+    @Bean(name = "notificationRetryJob")
+    public Job retryJob(@Qualifier("newsletterRetryStep") Step step) {
+        return new JobBuilder("notificationRetryJob", jobRepository)
+                .start(step)
+                .listener(newsletterJobListener)
+                .build();
+    }
+
 }

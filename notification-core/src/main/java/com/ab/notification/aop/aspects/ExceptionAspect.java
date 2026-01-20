@@ -34,12 +34,7 @@ public class ExceptionAspect {
         if (ex instanceof AppException) {
             traceId = ((AppException) ex).getTraceId();
         }
-        LOGGER.error("ExceptionAspect: Exception has been thrown in the class {} and the method is {}, method args: {}, error message is: {}, trace ID is: {}",
-                joinPoint.getSignature().getDeclaringTypeName(),
-                joinPoint.getSignature().getName(),
-                stringBuilder,
-                traceId,
-                ex.getMessage(), ex);
+        LOGGER.error("ExceptionAspect: Exception has been thrown in the class {} and the method is {}, method args: {}, error message is: {}, trace ID is: {}", joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName(), stringBuilder, ex.getMessage(), traceId, ex);
 
         //TODO: Can be used for metrics purpose with spring actuator for critical exceptions, alerts etc.
     }

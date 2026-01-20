@@ -12,4 +12,8 @@ public interface ErrorBatchRepository extends JpaRepository<ErrorBatchEntity, Lo
 
     @Query(nativeQuery = true, value = "select * from notification_service_error_batch_ms_tbl where is_success=false")
     List<ErrorBatchEntity> findIfSuccessIsFalse();
+
+    @Query(nativeQuery = true, value = "select count(*) from notification_service_error_batch_ms_tbl where is_success=false")
+    int countIfSuccessIsFalse();
+
 }

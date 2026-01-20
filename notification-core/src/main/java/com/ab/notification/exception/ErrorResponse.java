@@ -1,7 +1,10 @@
 package com.ab.notification.exception;
 
+import lombok.Getter;
+
 import java.io.Serializable;
 
+@Getter
 public class ErrorResponse implements Serializable {
 
     public static final long serialVersionUID = 1L;

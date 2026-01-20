@@ -6,6 +6,7 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -14,16 +15,12 @@ import java.util.Map;
 @StepScope
 public class NewsLetterEmailProcessor implements ItemProcessor<String, EmailDTO>, StepExecutionListener {
 
+    @Value("#{jobExecutionContext['mailMap']}")
     private Map<String, String> mailMap;
 
     @Override
-    public void beforeStep(StepExecution stepExecution) {
-        this.mailMap = (Map<String, String>) stepExecution.getJobExecution().getExecutionContext().get("mailMap");
-    }
-
-    @Override
     public EmailDTO process(String email) {
-        return new EmailDTO(mailMap, email); // combine
+        return new EmailDTO(mailMap, email,false); // combine
     }
 
     @Override

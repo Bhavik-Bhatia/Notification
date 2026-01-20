@@ -8,6 +8,9 @@ java -Xms512m -Xmx2g -Djava.locale.providers=COMPAT,CLDR -Djboss.server.home.dir
 2)Start Command for application debug -
 ${JAVA_HOME}/bin/java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=7000,suspend=n -Djava.locale.providers=COMPAT,CLDR -Djboss.server.home.dir="/home/asite/Documents/notification" -jar notification-web/build/libs/notification-web.war --spring.config.location=resources/application.properties
 
+For windows
+%JAVA_HOME%\bin\java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=7000,suspend=n -Djava.locale.providers=COMPAT,CLDR -Djboss.server.home.dir="D:\Notification" -jar notification-web/build/libs/notification-web.war --spring.config.location=resources/application.properties
+
 3)Docker related commands for this app -
 
 #Build

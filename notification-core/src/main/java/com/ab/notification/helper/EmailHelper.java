@@ -1,6 +1,8 @@
 package com.ab.notification.helper;
 
+import com.ab.notification.actuator.metrics.MailMetrics;
 import com.ab.notification.annotation.Log;
+import io.micrometer.core.instrument.Counter;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -32,10 +34,13 @@ public class EmailHelper {
 
     private final String[] ADMIN_MAILS;
 
+    private final MailMetrics mailMetrics;
+
     @Autowired
-    public EmailHelper(JavaMailSender mailSender, Environment env) {
+    public EmailHelper(JavaMailSender mailSender, Environment env, MailMetrics mailMetrics) {
         javaMailSender = mailSender;
         environment = env;
+        this.mailMetrics = mailMetrics;
         ADMIN_MAILS = environment.getProperty("admin.emails").split(",");
         MAIL_FROM = environment.getProperty("spring.mail.username");
     }
@@ -49,6 +54,7 @@ public class EmailHelper {
         mimeMessageHelper.setTo(mailTo);
         mimeMessageHelper.setText(mailMap.get("text"));
         javaMailSender.send(mimeMessageHelper.getMimeMessage());
+        mailMetrics.incrementMailSenderCounter();
     }
 
     /**
@@ -64,6 +70,19 @@ public class EmailHelper {
                 sendMails(mailMap, adminMail);
             } catch (Exception e) {
                 LOGGER.debug("Exception while sending mail to admin");
+            }
+        }
+    }
+
+    @Log
+    public void sendMailToAdminForHealth(Map<String, String> mailMap, boolean isForHealth) throws MessagingException, UnsupportedEncodingException {
+        for (String adminMail : ADMIN_MAILS) {
+            try {
+                sendMails(mailMap, adminMail);
+            } catch (Exception e) {
+                if (isForHealth) {
+                    throw e;
+                }
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.ab.notification.scheduler;
 
 import com.ab.notification.annotation.Log;
+import com.ab.notification.batch.listener.NewsletterJobListener;
 import com.ab.notification.constants.NotificationContants;
 import com.ab.notification.helper.EmailHelper;
 import com.ab.notification.model.ErrorBatchEntity;
@@ -8,7 +9,16 @@ import com.ab.notification.repository.ErrorBatchRepository;
 import com.ab.notification.service.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
+import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
+import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +26,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * This class will fetch error details and retry email sending periodically
@@ -25,27 +36,34 @@ import java.util.Map;
 public class EmailsRetryScheduler {
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailsRetryScheduler.class);
 
-    private final ErrorBatchRepository errorBatchRepository;
-
     private final EmailHelper emailHelper;
 
-    private final EmailService emailService;
+    private final JobLauncher jobLauncher;
+
+    private final Job job;
 
     @Autowired
-    public EmailsRetryScheduler(ErrorBatchRepository batchRepository, EmailService service, EmailHelper helper) {
-        errorBatchRepository = batchRepository;
-        emailHelper = helper;
-        emailService = service;
-
+    public EmailsRetryScheduler(@Qualifier("notificationRetryJob") Job job, JobLauncher jobLauncher, EmailHelper helper) {
+        this.emailHelper = helper;
+        this.jobLauncher = jobLauncher;
+        this.job = job;
     }
 
     /**
      * Runs in every 8 hours
      */
 //    @Scheduled(cron = "0 24 10 * * 3")
-    @Scheduled(fixedDelayString  = "${error.retry.scheduler.delay}")
+    @Scheduled(fixedDelayString = "${error.retry.scheduler.delay}")
     @Log
-    public void retryFailedEmails() {
+    public void retryFailedEmails() throws JobInstanceAlreadyCompleteException, JobExecutionAlreadyRunningException, JobParametersInvalidException, JobRestartException {
+        String jobID = UUID.randomUUID() + "retryFailedEmails";
+        JobParameters jobParameter = new JobParametersBuilder().
+                addJobParameter("jobId", jobID, String.class).
+                addJobParameter("timestamp", System.currentTimeMillis(), Long.class).
+                addJobParameter("isRetry", true, Boolean.class).
+                toJobParameters();
+        jobLauncher.run(job, jobParameter);
+/*
         List<ErrorBatchEntity> errorBatchEntityList = errorBatchRepository.findIfSuccessIsFalse();
         StringBuilder idsForRetryCountGreaterThanTwo = new StringBuilder();
         StringBuilder idsForFailedBatches = new StringBuilder();
@@ -67,21 +85,10 @@ public class EmailsRetryScheduler {
                 errorBatchEntity.setRetryCount(errorBatchEntity.getRetryCount() + 1);
                 errorBatchEntity.setLastRetryAt(ZonedDateTime.now());
                 updatedErrorBatchEntityList.add(errorBatchEntity);
-                errorBatchRepository.saveAll(updatedErrorBatchEntityList);
             }
+            errorBatchRepository.saveAll(updatedErrorBatchEntityList);
             sendMailsToAdmins(idsForRetryCountGreaterThanTwo, idsForFailedBatches);
         }
+*/
     }
-
-    private void sendMailsToAdmins(StringBuilder idsForRetryCountGreaterThanTwo, StringBuilder idsForFailedBatches) {
-        if (!idsForRetryCountGreaterThanTwo.isEmpty()) {
-            Map<String, String> mailMapForAdminMail = emailHelper.prepareMailMap(NotificationContants.MAIL_SUBJECT_FOR_RETRYING_MORE_THAN_TWICE_SENDING_TO_ADMIN, String.format(NotificationContants.MAIL_BODY_FOR_RETRYING_MORE_THAN_TWICE_SENDING_TO_ADMIN, idsForRetryCountGreaterThanTwo));
-            emailHelper.sendMailToAdmin(mailMapForAdminMail, true);
-        }
-        if (!idsForFailedBatches.isEmpty()) {
-            Map<String, String> mailMapForFailedBatchIdsAdminMail = emailHelper.prepareMailMap(NotificationContants.MAIL_SUBJECT_FOR_RETRYING_FAILURE_ALERT_SENDING_TO_ADMIN, String.format(NotificationContants.MAIL_BODY_FOR_RETRYING_FAILURE_ALERT_SENDING_TO_ADMIN, idsForFailedBatches));
-            emailHelper.sendMailToAdmin(mailMapForFailedBatchIdsAdminMail, true);
-        }
-    }
-
 }

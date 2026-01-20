@@ -9,4 +9,5 @@ dependencies {
     api project(":notification-dao")
     api project(":notification-client")
     api files("src/lib/thirdPartyJars/Jwt-Util-1.0-fat.jar")
+    api 'org.springframework.boot:spring-boot-starter-actuator'
 }

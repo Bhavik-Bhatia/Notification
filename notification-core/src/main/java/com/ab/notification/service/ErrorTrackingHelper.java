@@ -2,6 +2,8 @@ package com.ab.notification.service;
 
 import com.ab.notification.annotation.Log;
 import com.ab.notification.constants.NotificationContants;
+import com.ab.notification.exception.AppException;
+import com.ab.notification.exception.ErrorCode;
 import com.ab.notification.helper.EmailHelper;
 import com.ab.notification.model.ErrorBatchEntity;
 import com.ab.notification.repository.ErrorBatchRepository;
@@ -35,12 +37,11 @@ public class ErrorTrackingHelper {
      * @param errorBatchEntity ErrorBatchEntity
      */
     @Log
-    public void saveErrorBatchDetails(ErrorBatchEntity errorBatchEntity) {
+    public void saveErrorBatchDetails(ErrorBatchEntity errorBatchEntity) throws AppException {
         try {
             ErrorBatchEntity savedErrorEntity = errorBatchRepository.save(errorBatchEntity);
             LOGGER.error("Error batch emails saved in DB for ID {}", savedErrorEntity.getId());
         } catch (Exception e) {
-            LOGGER.error("ERROR while saving in DB {}", e.getMessage());
             emailHelper.sendMailToAdmin(emailHelper.prepareMailMap(NotificationContants.MAIL_SUBJECT_FOR_ERROR_WHILE_SENDING_TO_ADMIN, String.format(NotificationContants.MAIL_BODY_FOR_ERROR_WHILE_SENDING_TO_ADMIN, errorBatchEntity.getErrorBatchDetail())), false);
         }
     }
